@@ -68,16 +68,27 @@ namespace refeitorio.Services
 
         public async Task<OrderDTO> CreateFromCartAsync(int userId)
         {
+            return (await CheckoutAsync(userId)).Order;
+        }
+
+        /// <summary>
+        /// Calls the API checkout and returns either the order or the API's error message.
+        /// </summary>
+        public async Task<(OrderDTO Order, string Error)> CheckoutAsync(int userId)
+        {
             var orderDto = new CreateOrderDTO { UserId = userId };
             var content = new StringContent(JsonSerializer.Serialize(orderDto), Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync($"{_baseUrl}/Orders", content);
-            
+
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<OrderDTO>();
+                return (await response.Content.ReadFromJsonAsync<OrderDTO>(), null);
             }
-            
-            return null;
+
+            var error = (await response.Content.ReadAsStringAsync())?.Trim('"');
+            return (null, string.IsNullOrWhiteSpace(error)
+                ? "Erro ao processar o pedido. Verifique o estoque e saldo."
+                : error);
         }
 
         public async Task<bool> UpdateStatusAsync(int id, string status, int? staffId = null)

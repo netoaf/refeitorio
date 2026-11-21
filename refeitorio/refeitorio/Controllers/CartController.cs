@@ -216,11 +216,11 @@ namespace refeitorio.Controllers
             // Criar o pedido via API
             var orderDto = new CreateOrderDTO { UserId = studentId.Value };
             // A lógica de negócio acontece na API: verificar estoque, baixa em estoque, desconto em saldo, etc.
-            var order = await _orderService.CreateFromCartAsync(orderDto.UserId);
+            var (order, checkoutError) = await _orderService.CheckoutAsync(orderDto.UserId);
 
             if (order == null)
             {
-                var errorMsg = "Erro ao processar o pedido. Verifique o estoque e saldo.";
+                var errorMsg = checkoutError ?? "Erro ao processar o pedido. Verifique o estoque e saldo.";
                 if (isAjax) return Json(new { success = false, message = errorMsg });
                 TempData["Error"] = errorMsg;
                 return RedirectToAction("Index");

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using WebApplication1.Data;
 using WebApplication1.Models;
@@ -17,6 +18,8 @@ public class OrderServiceTests
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            // The in-memory provider has no real transactions, so it only warns about them.
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         var db = new ApplicationDbContext(options);
 
@@ -30,6 +33,7 @@ public class OrderServiceTests
         db.SaveChanges();
 
         var service = new OrderService(
+            db,
             new OrderRepository(db),
             new CartRepository(db),
             new ProductRepository(db, NullLogger<ProductRepository>.Instance),
@@ -174,4 +178,74 @@ public class OrderServiceTests
 
         Assert.Equal(16.50m, db.Users.Find(StudentId).Balance);
     }
+
+    [Fact]
+    public async Task Checkout_WithMoreThanTheStock_IsRefusedWithAClearMessage()
+    {
+        var (service, db) = CreateService(balance: 100m);
+        db.Products.Find(1).Stock = 2;
+        db.SaveChanges();
+        AddToCart(db, 1, 3);  // wants 3, only 2 exist
+
+        var result = await service.CheckoutAsync(StudentId);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("Stock insuficiente", result.Error);
+        Assert.Contains("Coca-Cola", result.Error);
+        Assert.Equal(2, db.Products.Find(1).Stock);
+        Assert.Equal(100m, db.Users.Find(StudentId).Balance);
+        Assert.Empty(db.Orders);
+        Assert.Single(db.Cart);
+    }
+
+    [Fact]
+    public async Task Checkout_OfExactlyTheRemainingStock_LeavesZeroNotNegative()
+    {
+        var (service, db) = CreateService(balance: 100m);
+        db.Products.Find(2).Stock = 2;
+        db.SaveChanges();
+        AddToCart(db, 2, 2);
+
+        var result = await service.CheckoutAsync(StudentId);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(0, db.Products.Find(2).Stock);
+    }
+
+    [Fact]
+    public async Task Checkout_WhenOneItemIsOverStock_NothingIsChargedForTheOthers()
+    {
+        var (service, db) = CreateService(balance: 100m);
+        db.Products.Find(2).Stock = 0;
+        db.SaveChanges();
+        AddToCart(db, 1, 1);  // fine
+        AddToCart(db, 2, 1);  // sold out
+
+        var result = await service.CheckoutAsync(StudentId);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(100m, db.Users.Find(StudentId).Balance);
+        Assert.Equal(100, db.Products.Find(1).Stock);
+        Assert.Equal(2, db.Cart.Count());
+    }
+
+    [Fact]
+    public async Task Checkout_ExplainsWhyItFailed()
+    {
+        var (service, db) = CreateService(balance: 1m);
+
+        var empty = await service.CheckoutAsync(StudentId);
+        Assert.Contains("vazio", empty.Error);
+
+        AddToCart(db, 2, 1);  // 3.50 > 1.00
+        var poor = await service.CheckoutAsync(StudentId);
+        Assert.Contains("Saldo insuficiente", poor.Error);
+
+        var unknownUser = await service.CheckoutAsync(999);
+        Assert.Contains("Utilizador", unknownUser.Error);
+    }
+
+    // Not covered here: rolling the transaction back when a write fails half-way.
+    // The EF Core in-memory provider has no real transactions, so that path needs
+    // an integration test against SQL Server (see LIMITATIONS.md).
 }

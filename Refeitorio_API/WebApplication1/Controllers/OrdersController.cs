@@ -35,11 +35,11 @@ namespace WebApplication1.Controllers
         [HttpPost]
         public async Task<ActionResult<OrderDTO>> CreateOrder(CreateOrderDTO orderDto)
         {
-            var order = await _orderService.CreateFromCartAsync(orderDto.UserId);
-            if (order == null)
-                return BadRequest("Carrinho vazio ou saldo insuficiente");
+            var result = await _orderService.CheckoutAsync(orderDto.UserId);
+            if (!result.Succeeded)
+                return BadRequest(result.Error);
 
-            return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
+            return CreatedAtAction(nameof(GetOrder), new { id = result.Order.Id }, result.Order);
         }
 
         [HttpPut("{id}/status/{status}")]
