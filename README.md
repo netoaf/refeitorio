@@ -61,6 +61,8 @@ Why it is split this way is explained in [`TECHNICAL_DECISIONS.md`](TECHNICAL_DE
 ## Security choices
 
 - Passwords are hashed with ASP.NET Core Identity `PasswordHasher`; no plain-text passwords in code or seed data.
+- Checkout is one serializable database transaction: the balance debit, the order, the stock decrement and the cart clearing are saved together or not at all. Stock and balance are checked inside it, so stock never goes negative and a refused checkout changes nothing.
+- Every MVC POST validates an anti-forgery token (global filter, with the token sent on form posts and `fetch` calls).
 - Public registration always creates a Student. The client cannot choose its own role.
 - Connection strings contain no credentials (Windows authentication).
 - Known gap: the API itself does not yet require a token. See [`LIMITATIONS.md`](LIMITATIONS.md).
@@ -81,4 +83,4 @@ Demo accounts (local only): `admin`, `student`, `func`, all with password `Demo-
 
 ## Honest scope
 
-A school project, built independently. The order and balance logic is covered by xUnit tests (`Refeitorio_API/WebApplication1.Tests`, run in CI); the rest has no automated tests yet, the API has no authentication, and sessions live on the server. A production version would add token auth, wider test coverage, transactional checkout and environment-based configuration. The CI workflow in this repository builds both solutions on every push.
+A school project, built independently. The order, stock and balance logic is covered by 17 xUnit tests (`Refeitorio_API/WebApplication1.Tests`, run in CI); the transaction rollback path and the UI have no automated tests yet, the API has no authentication, and sessions live on the server. A production version would add token auth, a SQL Server integration test for the rollback path, and environment-based configuration. The CI workflow in this repository builds both solutions on every push.

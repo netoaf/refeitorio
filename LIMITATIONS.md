@@ -27,6 +27,17 @@ warning CS8618: Non-nullable property must contain a non-null value.
 **Location**: Multiple views with onerror handlers and avatar generation
 **Impact**: Increased client-side complexity for image handling
 
+### Cancelling and Refunds
+**Issue**: Only a *Pending* order is refunded when cancelled. Cancelling a *Ready* order marks it cancelled without returning the money (a test documents this).
+**Next step**: Decide the refund rule for Ready orders and cover it with a test.
+
+### Certificate Handling in the MVC Client
+**Issue**: `AuthService.Login` uses a plain `HttpClient`, so it fails against an untrusted development certificate, while `Register` and `GetUserById` disable certificate validation. The two behave differently, and the second is only acceptable for local development.
+**Next step**: One shared `HttpClient` from `IHttpClientFactory`, with the development certificate trusted instead of bypassed.
+
+### Routing and Small UI Gaps
+**Issue**: Controller URLs need the action name (`/Products/Index`, not `/Products`) because the default route only has a default for the Auth controller. After a successful checkout the cart table stays on screen until the page reloads.
+
 ### Session-Based Authentication
 **Issue**: Authentication relies on server-side sessions
 **Impact**: Limited scalability and no support for distributed deployment
