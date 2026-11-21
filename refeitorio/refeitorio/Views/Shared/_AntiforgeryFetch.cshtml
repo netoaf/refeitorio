@@ -1,0 +1,21 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@* Adds the anti-forgery token to every same-origin fetch() that changes data, so the
+   AJAX calls keep working with the global AutoValidateAntiforgeryToken filter. *@
+<script>
+    (function () {
+        const token = '@Antiforgery.GetAndStoreTokens(Context).RequestToken';
+        const originalFetch = window.fetch;
+        window.fetch = function (input, init) {
+            init = init || {};
+            const method = (init.method || (input && input.method) || 'GET').toUpperCase();
+            const url = typeof input === 'string' ? input : (input && input.url) || '';
+            const sameOrigin = url.startsWith('/') || url.startsWith(window.location.origin);
+            if (sameOrigin && method !== 'GET' && method !== 'HEAD') {
+                const headers = new Headers(init.headers || {});
+                headers.set('RequestVerificationToken', token);
+                init.headers = headers;
+            }
+            return originalFetch.call(this, input, init);
+        };
+    })();
+</script>

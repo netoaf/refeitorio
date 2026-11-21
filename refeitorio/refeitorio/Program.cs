@@ -5,7 +5,10 @@ using System.Net;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+// Every POST/PUT/DELETE must carry an anti-forgery token (form field or header).
+builder.Services.AddControllersWithViews(options =>
+    options.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute()));
+builder.Services.AddAntiforgery(options => options.HeaderName = "RequestVerificationToken");
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
