@@ -22,11 +22,6 @@ namespace refeitorio.Controllers
             return View();
         }
 
-        public IActionResult TestUserType()
-        {
-            return View("~/Views/Shared/TestUserType.cshtml");
-        }
-
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

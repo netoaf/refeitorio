@@ -36,7 +36,6 @@ builder.Services.AddHttpClient("ApiClient", client =>
 });
 
 builder.Services.AddScoped<HttpClientService>();
-builder.Services.AddScoped<DiagnosticService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<CartService>();

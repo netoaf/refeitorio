@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using refeitorio.Services;
 using refeitorio.ViewModels;
 
@@ -15,6 +16,18 @@ namespace refeitorio.Controllers
             _orderService = orderService;
             _authService = authService;
             _adminService = adminService;
+        }
+
+        // Every action in this controller requires the role, including POST handlers.
+        public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+        {
+            if (!await IsStaffOrAdmin())
+            {
+                TempData["Error"] = "Acesso negado. Apenas funcionários podem aceder a esta área.";
+                context.Result = RedirectToAction("Index", "Products");
+                return;
+            }
+            await next();
         }
 
         private async Task<bool> IsStaffOrAdmin()
