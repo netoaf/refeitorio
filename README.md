@@ -35,12 +35,14 @@ Built alone as a school project. The presentation layer never touches the databa
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    B[Browser] --> M[MVC app: Razor views and ViewModels]
-    M -- HTTP --> A[Web API: controllers, DTOs, services, repositories]
-    A --> D[(SQL Server: EF Core and migrations)]
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-dark.png">
+    <img src="docs/architecture.png" alt="Architecture: the browser talks to the MVC front end, which calls the Web API over REST. Inside the API, controllers pass DTOs to the services that own the business rules, and only the repositories reach SQL Server through EF Core. xUnit tests cover the services." width="880">
+  </picture>
+</p>
+
+<p align="center"><sub>Source: <a href="docs/diagram-source/architecture.html"><code>docs/diagram-source/</code></a>, drawn with <a href="https://github.com/cathrynlavery/diagram-design">diagram-design</a>.</sub></p>
 
 | Project | Role |
 |---|---|
